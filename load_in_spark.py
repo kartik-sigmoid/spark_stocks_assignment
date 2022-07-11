@@ -20,9 +20,10 @@ def load_in_spark():
     dense_rank() over (partition by date order by volume desc) as dense_rank from stocks) as stock_table where 
     stock_table.dense_rank=1 """
 
-    query4 = """Select stock_table.company, stock_table.open, stock_table.high, (stock_table.high - stock_table.open) "
-          "as max_diff from (Select company, (Select open from stocks limit 1) as open, max(high) as high "
-          "from stocks group by company)stock_table order by max_diff desc limit 1"""
+    query4 = """with df1 as (select company, open from (select company, open, dense_rank() over (partition by company order by date) as d_rank1 from stocks)stock_table where stock_table.d_rank1=1) " \
+          ", df2 as (select company, close from (select company, close, dense_rank() over (partition by company order by date desc) as d_rank2 from stocks)stock_table2 where stock_table2.d_rank2 = 1) " \
+          "select df1.company, df1.open, df2.close, df1.open-df2.close as max_diff from df1 inner join df2 where df1.company = df2.company " \
+          "order by max_diff DESC limit 1"""
 
     query5 = """Select company, stddev_samp(Volume) as std_deviation from stocks group by company"""
 
@@ -37,10 +38,12 @@ def load_in_spark():
     query9 = """select company, Max(High) as Highest_Value, Min(Low) as Lowest_Value from stocks
     group by company"""
 
-    test_query = "Select date, company, volume, dense_rank() over (partition by date order by INT(volume) desc) as " \
-                 "dense_rank from stocks "
+    test_query = "Select * from stocks"
 
-    spark.sql(query2).show()
+
+
+
+    spark.sql(test_query).show()
 
 
 load_in_spark()
